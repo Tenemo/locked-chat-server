@@ -1,1 +1,2 @@
-# locked-chat-server
+# expressplate
+Express.js REST API opinionated boilerplate
