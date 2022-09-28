@@ -1,10 +1,10 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import { createServer } from 'http';
-import socketIo, { Server } from 'socket.io';
+import { Server } from 'socket.io';
 
 import { healthCheck } from 'routes/health-check';
-import { countReset } from 'console';
+
 type Message = {
     content: string;
     author: string;
@@ -39,12 +39,12 @@ app.post('/send', (req, res) => {
 });
 
 const httpServer = createServer(app);
-const io = socketIo(httpServer);
+const io = new Server(httpServer);
 
-io.on(`connection`, (socket) => {
+io.on(`connection`, async (socket) => {
     console.log(`client connected: `, socket.id);
 
-    socket.join(`clock-room`);
+    await socket.join(`clock-room`);
 
     socket.on(`disconnect`, (reason) => {
         console.log(reason);
