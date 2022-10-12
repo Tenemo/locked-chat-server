@@ -4,7 +4,6 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 
 import { healthCheck } from 'routes/health-check';
-// import { stringify } from 'querystring'
 import crypto from 'crypto';
 
 type Message = {
@@ -53,7 +52,7 @@ io.on(`connection`, async (socket) => {
             timestamp,
             id,
         };
-        console.log(newMessage);
+
         messages.push(newMessage);
         io.emit('new-message-update', newMessage);
     });
