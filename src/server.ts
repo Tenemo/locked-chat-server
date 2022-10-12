@@ -1,17 +1,23 @@
 import dotenv from 'dotenv';
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 import { healthCheck } from 'routes/health-check';
+import crypto from 'crypto';
+
 type Message = {
     content: string;
     author: string;
     timestamp: string;
+    id: string;
 };
 const messages: Message[] = [
     {
         content: 'abc',
         author: 'Rafał',
         timestamp: '123',
+        id: '1',
     },
 ];
 
@@ -24,15 +30,38 @@ const port = process.env.PORT ?? 4000;
 
 app.get('/health-check', healthCheck);
 
-app.listen(port, () => {
-    console.log(`App listening on port ${port}.`);
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: '*',
+    },
 });
 
-app.get('/messages', function (_req, res) {
-    res.send(messages);
+io.on(`connection`, async (socket) => {
+    socket.send(messages);
+    console.log(`client connected: `, socket.id);
+
+    socket.on('new-message', (data: string) => {
+        console.log(data);
+        const timestamp = new Date().toISOString();
+        const id = crypto.randomBytes(32).toString('hex');
+
+        const newMessage: Message = {
+            content: data,
+            author: socket.id,
+            timestamp,
+            id,
+        };
+
+        messages.push(newMessage);
+        io.emit('new-message-update', newMessage);
+    });
+
+    socket.on(`disconnect`, (reason) => {
+        console.log(reason);
+    });
 });
 
-app.post('/send', (req, res) => {
-    messages.push(req.body as Message);
-    res.send('Message saved.');
+httpServer.listen(port, () => {
+    console.log(`Listening on port ${port}`);
 });
