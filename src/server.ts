@@ -4,6 +4,8 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 
 import { healthCheck } from 'routes/health-check';
+import { stringify } from 'querystring';
+import crypto, { createHash } from 'crypto';
 
 type Message = {
     content: string;
@@ -29,22 +31,28 @@ const port = process.env.PORT ?? 4000;
 
 app.get('/health-check', healthCheck);
 
-app.get('/messages', function (_req, res) {
-    res.send(messages);
-});
-
-app.post('/send', (req, res) => {
-    messages.push(req.body as Message);
-    res.send('Message saved.');
-});
-
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 
 io.on(`connection`, async (socket) => {
+    socket.send(messages);
     console.log(`client connected: `, socket.id);
 
-    await socket.join(`clock-room`);
+    socket.on('new-message', (data: string) => {
+        console.log(data);
+        const timestamp = new Date().toISOString();
+        const id = crypto.randomBytes(32).toString('hex');
+
+        const newMessage: Message = {
+            content: data,
+            author: socket.id,
+            timestamp,
+            id,
+        };
+        console.log(newMessage);
+        messages.push(newMessage);
+        io.emit('new-message-update', newMessage);
+    });
 
     socket.on(`disconnect`, (reason) => {
         console.log(reason);
