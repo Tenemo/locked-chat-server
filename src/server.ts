@@ -32,7 +32,11 @@ const port = process.env.PORT ?? 4000;
 app.get('/health-check', healthCheck);
 
 const httpServer = createServer(app);
-const io = new Server(httpServer);
+const io = new Server(httpServer, {
+    cors: {
+        origin: '*',
+    },
+});
 
 io.on(`connection`, async (socket) => {
     socket.send(messages);
