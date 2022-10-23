@@ -21,6 +21,13 @@ const messages: Message[] = [
     },
 ];
 
+type User = {
+    nick: string;
+    id: string;
+};
+
+const users: User[] = [{ nick: 'Garrow', id: '1' }];
+
 dotenv.config();
 
 const app = express();
@@ -38,7 +45,6 @@ const io = new Server(httpServer, {
 });
 
 io.on(`connection`, async (socket) => {
-    socket.send(messages);
     console.log(`client connected: `, socket.id);
 
     socket.on('new-message', (data: string) => {
@@ -57,6 +63,17 @@ io.on(`connection`, async (socket) => {
         io.emit('new-message-update', newMessage);
     });
 
+    socket.on('set-username', (nick: string) => {
+        if (users.some((user) => user.nick === nick)) {
+            socket.emit('set-username-failed'); // one argument?
+        } else {
+            users.push({ nick: nick, id: socket.id });
+            socket.emit('set-username-correct', users);
+            socket.send(messages);
+        }
+        console.log(users);
+    });
+
     socket.on(`disconnect`, (reason) => {
         console.log(reason);
     });
@@ -65,3 +82,5 @@ io.on(`connection`, async (socket) => {
 httpServer.listen(port, () => {
     console.log(`Listening on port ${port}`);
 });
+
+// enum z nazwami
