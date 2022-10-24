@@ -4,29 +4,34 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 
 import { healthCheck } from 'routes/health-check';
-import crypto from 'crypto';
+// import crypto from 'crypto';
+// import { UserWhitespacable } from '@babel/types';
+// import { stringify } from 'querystring';
 
-type Message = {
-    content: string;
-    author: string;
-    timestamp: string;
-    id: string;
-};
-const messages: Message[] = [
-    {
-        content: 'abc',
-        author: 'Rafał',
-        timestamp: '123',
-        id: '1',
-    },
-];
+// enum events {
+//     NEW_MESSAGE = 'new-message',
+//     NEW_MESSAGE_UPDATE = 'new-message-update',
+//     SET_USERNAME = 'set-username',
+//     SET_USERNAME_STATUS = 'set-username-status',
+// }
 
-type User = {
-    nick: string;
-    id: string;
-};
+// type Message = {
+//     content: string;
+//     author: string;
+//     timestamp: string;
+//     id: string;
+// };
 
-const users: User[] = [{ nick: 'Garrow', id: '1' }];
+// const messages: Message[] = [
+//     {
+//         content: 'abc',
+//         author: 'Rafał',
+//         timestamp: '123',
+//         id: '1',
+//     },
+// ];
+
+// const users = {};
 
 dotenv.config();
 
@@ -47,32 +52,49 @@ const io = new Server(httpServer, {
 io.on(`connection`, async (socket) => {
     console.log(`client connected: `, socket.id);
 
-    socket.on('new-message', (data: string) => {
-        console.log(data);
-        const timestamp = new Date().toISOString();
-        const id = crypto.randomBytes(32).toString('hex');
+    // socket.on(events.SET_USERNAME, (nick: string) => {
+    //     type History = { status: boolean; messages: Message[]; users: {} };
 
-        const newMessage: Message = {
-            content: data,
-            author: socket.id,
-            timestamp,
-            id,
-        };
+    //     const history: History = {
+    //         status: false,
+    //         messages: [],
+    //         users: {},
+    //     };
 
-        messages.push(newMessage);
-        io.emit('new-message-update', newMessage);
-    });
+    //     if (
+    //         Object.values(users).some((existingNick) => existingNick === nick)
+    //     ) {
+    //         socket.emit(events.SET_USERNAME_STATUS, history);
+    //     } else {
+    //         users[socket.id] = nick;
 
-    socket.on('set-username', (nick: string) => {
-        if (users.some((user) => user.nick === nick)) {
-            socket.emit('set-username-failed'); // one argument?
-        } else {
-            users.push({ nick: nick, id: socket.id });
-            socket.emit('set-username-correct', users);
-            socket.send(messages);
-        }
-        console.log(users);
-    });
+    //         history.status = true;
+    //         history.messages = messages;
+    //         history.users = users;
+
+    //         socket.emit(events.SET_USERNAME_STATUS, history);
+    //     }
+    //     console.log('history: ', history, 'socket: :', socket.id);
+    // });
+
+    // socket.on(events.NEW_MESSAGE, (data: string) => {
+    //     if (!(socket.id in users)) return;
+
+    //     const author = users[socket.id];
+    //     console.log('author: ', author);
+    //     const timestamp = new Date().toISOString();
+    //     const id = crypto.randomBytes(32).toString('hex');
+
+    //     const newMessage: Message = {
+    //         content: data,
+    //         author,
+    //         timestamp,
+    //         id,
+    //     };
+
+    //     messages.push(newMessage);
+    //     io.emit(events.NEW_MESSAGE_UPDATE, newMessage);
+    // });
 
     socket.on(`disconnect`, (reason) => {
         console.log(reason);
@@ -82,5 +104,3 @@ io.on(`connection`, async (socket) => {
 httpServer.listen(port, () => {
     console.log(`Listening on port ${port}`);
 });
-
-// enum z nazwami

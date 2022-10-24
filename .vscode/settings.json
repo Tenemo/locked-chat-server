@@ -25,14 +25,18 @@
     "workbench.iconTheme": "vscode-icons",
     "cSpell.ignorePaths": ["node_modules", ".git"],
     "cSpell.words": [
+        "AAAB",
         "coenraad",
         "dbaeumer",
         "eamodio",
         "esbenp",
         "expressplate",
         "formulahendry",
+        "Garrow",
         "gitlens",
         "kohler",
-        "sourcemap"
+        "Rafał",
+        "sourcemap",
+        "Whitespacable"
     ]
 }
