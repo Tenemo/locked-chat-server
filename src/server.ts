@@ -60,13 +60,13 @@ io.on(`connection`, async (socket) => {
 
     socket.on(events.SET_USERNAME, (nick: string) => {
         type History = {
-            status: boolean;
+            ok: boolean;
             messages: Message[];
             users: User;
         };
 
         const history: History = {
-            status: false,
+            ok: false,
             messages: [],
             users: {},
         };
@@ -78,32 +78,30 @@ io.on(`connection`, async (socket) => {
         } else {
             users[socket.id] = nick;
 
-            history.status = true;
+            history.ok = true;
             history.messages = messages;
             history.users = users;
 
             socket.emit(events.SET_USERNAME_STATUS, history);
         }
-        console.log('history: ', history);
     });
 
-    socket.on(events.NEW_MESSAGE, (data: string) => {
+    socket.on(events.NEW_MESSAGE, (textOfMessage: string) => {
         if (!(socket.id in users)) return;
 
         const author = users[socket.id];
-        console.log('author: ', author);
         const timestamp = new Date().toISOString();
         const id = crypto.randomBytes(32).toString('hex');
 
         const newMessage: Message = {
-            content: data,
+            content: textOfMessage,
             author,
             timestamp,
             id,
         };
 
         messages.push(newMessage);
-        io.emit(events.NEW_MESSAGE_UPDATE, newMessage);
+        io.emit(events.NEW_MESSAGE_UPDATE, newMessage); // person without nickname can see new messages for now
     });
 
     socket.on(`disconnect`, (reason) => {
