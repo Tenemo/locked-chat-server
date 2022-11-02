@@ -32,7 +32,6 @@
         "test:watch": "npm run test -- --watch"
     },
     "dependencies": {
-        "@babel/types": "^7.19.4",
         "@sinclair/typebox": "^0.24.42",
         "cross-env": "^7.0.3",
         "dotenv": "^16.0.2",

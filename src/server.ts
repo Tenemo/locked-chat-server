@@ -65,18 +65,19 @@ io.on(`connection`, async (socket) => {
 
             socket.emit(Events.SET_USERNAME_SUCCESS, {
                 messages: messages,
-                users: Object.values(users),
+                usernames: Object.values(users),
             });
         }
     });
 
     socket.on(Events.NEW_MESSAGE, (content: string) => {
-        if (!(socket.id in users)) {
-            socket.emit(Events.USERNAME_NOT_REGISTERED, content);
+        const author = users[socket.id];
+
+        if (!author) {
+            socket.emit(Events.NEW_MESSAGE_USERNAME_NOT_REGISTERED);
             return;
         }
 
-        const author = users[socket.id];
         const timestamp = new Date().toISOString();
         const id = crypto.randomBytes(32).toString('hex');
 
