@@ -5,14 +5,14 @@ import { Server } from 'socket.io';
 
 import { healthCheck } from 'routes/health-check';
 import crypto from 'crypto';
-// import { UserWhitespacable } from '@babel/types';
-// import { stringify } from 'querystring';
 
-enum events {
+enum Events {
     NEW_MESSAGE = 'new-message',
     NEW_MESSAGE_UPDATE = 'new-message-update',
     SET_USERNAME = 'set-username',
-    SET_USERNAME_STATUS = 'set-username-status',
+    SET_USERNAME_SUCCESS = 'set-username-success',
+    SET_USERNAME_FAILURE = 'set-username-failure',
+    USERNAME_NOT_REGISTERED = 'username-not-registered',
 }
 
 type Message = {
@@ -24,19 +24,31 @@ type Message = {
 
 const messages: Message[] = [
     {
-        content: 'Hi',
-        author: 'Rafał',
+        content: 'Hi 1',
+        author: 'Test1',
         timestamp: '2022-10-25T10:42:36.370Z',
         id: 'cc9811c5217c525b411bfe7c8b616852a752822ca4de8d28b2b113b906a89824',
     },
+    {
+        content: 'Hi 2',
+        author: 'Test2',
+        timestamp: '2022-10-25T10:45:11.390Z',
+        id: '616852a752822ca4cc98112b113b906a8c5217c525b411bfe7c8bde8d28b9824',
+    },
+    {
+        content: 'Hi 3',
+        author: 'Test3',
+        timestamp: '2022-10-25T10:48:36.150Z',
+        id: 'de8d28b2b113b90bfe7c8b6168cc9811c5217c525b41152a752822ca46a89824',
+    },
 ];
 
-type User = { [key: string]: string };
+type User = Record<string, string>;
 
 const users: User = {
-    _E9JSqynu35fJ4bIAAAB: 'Rafał',
-    znlbFaz31OAxAX7RAAAD: 'Piotrek',
-    znlbFaz31OAxAX7RDDAD: 'Wojtek',
+    _E9JSqynu35fJ4bIAAAB: 'Test1',
+    znlbFaz31OAxAX7RAAAD: 'Test2',
+    znlbFaz31OAxAX7RDDAD: 'Test3',
 };
 
 dotenv.config();
@@ -58,50 +70,44 @@ const io = new Server(httpServer, {
 io.on(`connection`, async (socket) => {
     console.log(`client connected: `, socket.id);
 
-    socket.on(events.SET_USERNAME, (nick: string) => {
-        type History = {
-            ok: boolean;
-            messages: Message[];
-            users: User;
-        };
-
-        const history: History = {
-            ok: false,
-            messages: [],
-            users: {},
-        };
-
+    socket.on(Events.SET_USERNAME, (username: string) => {
         if (
-            Object.values(users).some((existingNick) => existingNick === nick)
+            Object.values(users).some(
+                (existingUsername) => existingUsername === username,
+            )
         ) {
-            socket.emit(events.SET_USERNAME_STATUS, history);
+            socket.emit(Events.SET_USERNAME_FAILURE, username);
         } else {
-            users[socket.id] = nick;
+            users[socket.id] = username;
 
-            history.ok = true;
-            history.messages = messages;
-            history.users = users;
-
-            socket.emit(events.SET_USERNAME_STATUS, history);
+            socket.emit(Events.SET_USERNAME_SUCCESS, {
+                messages: messages,
+                users: Object.values(users),
+            });
         }
     });
 
-    socket.on(events.NEW_MESSAGE, (textOfMessage: string) => {
-        if (!(socket.id in users)) return;
+    socket.on(Events.NEW_MESSAGE, (content: string) => {
+        if (!(socket.id in users)) {
+            socket.emit(Events.USERNAME_NOT_REGISTERED, content);
+            return;
+        }
 
         const author = users[socket.id];
         const timestamp = new Date().toISOString();
         const id = crypto.randomBytes(32).toString('hex');
 
         const newMessage: Message = {
-            content: textOfMessage,
+            content,
             author,
             timestamp,
             id,
         };
 
         messages.push(newMessage);
-        io.emit(events.NEW_MESSAGE_UPDATE, newMessage); // person without nickname can see new messages for now
+        Object.keys(users).forEach((key) =>
+            io.to(key).emit(Events.NEW_MESSAGE_UPDATE, newMessage),
+        );
     });
 
     socket.on(`disconnect`, (reason) => {
