@@ -5,22 +5,7 @@ import { Server } from 'socket.io';
 
 import { healthCheck } from 'routes/health-check';
 import crypto from 'crypto';
-
-enum Events {
-    NEW_MESSAGE = 'new-message',
-    NEW_MESSAGE_UPDATE = 'new-message-update',
-    SET_USERNAME = 'set-username',
-    SET_USERNAME_SUCCESS = 'set-username-success',
-    SET_USERNAME_FAILURE = 'set-username-failure',
-    USERNAME_NOT_REGISTERED = 'username-not-registered',
-}
-
-type Message = {
-    content: string;
-    author: string;
-    timestamp: string;
-    id: string;
-};
+import { Events, Message, User } from 'types/types';
 
 const messages: Message[] = [
     {
@@ -42,8 +27,6 @@ const messages: Message[] = [
         id: 'de8d28b2b113b90bfe7c8b6168cc9811c5217c525b41152a752822ca46a89824',
     },
 ];
-
-type User = Record<string, string>;
 
 const users: User = {
     _E9JSqynu35fJ4bIAAAB: 'Test1',
