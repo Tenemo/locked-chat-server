@@ -5,7 +5,7 @@ export enum Events {
     SET_USERNAME = 'set-username',
     SET_USERNAME_SUCCESS = 'set-username-success',
     SET_USERNAME_FAILURE = 'set-username-failure',
-    USER_DISCONNECTED = 'user-left-chat',
+    USER_DISCONNECTED = 'user-disconnected',
 }
 
 export type Message = {
