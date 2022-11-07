@@ -68,9 +68,7 @@ io.on(`connection`, async (socket) => {
                 usernames: Object.values(users),
             });
 
-            socket.broadcast.emit(Events.UPDATE_USERS, {
-                usernames: Object.values(users),
-            });
+            socket.broadcast.emit(Events.UPDATE_USERS, username);
         }
     });
 
