@@ -98,6 +98,11 @@ io.on(`connection`, async (socket) => {
 
     socket.on(`disconnect`, (reason) => {
         console.log(reason);
+        console.log(users[socket.id], ' left the chat');
+
+        const username = users[socket.id];
+        delete users[socket.id];
+        socket.broadcast.emit(Events.USER_LEFT_CHAT, username);
     });
 });
 
