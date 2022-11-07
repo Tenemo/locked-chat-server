@@ -98,7 +98,7 @@ io.on(`connection`, async (socket) => {
         console.log(reason);
         console.log(users[socket.id], ' left the chat');
         delete users[socket.id];
-        socket.broadcast.emit(Events.USER_LEFT_CHAT, Object.values(users));
+        socket.broadcast.emit(Events.USER_DISCONNECTED, Object.values(users));
     });
 });
 
