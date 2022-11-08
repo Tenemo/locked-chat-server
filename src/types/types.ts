@@ -6,6 +6,8 @@ export enum Events {
     SET_USERNAME_SUCCESS = 'set-username-success',
     SET_USERNAME_FAILURE = 'set-username-failure',
     UPDATE_USERS = 'update-users',
+    USER_DISCONNECTED = 'user-disconnected',
+    
 }
 
 export type Message = {
