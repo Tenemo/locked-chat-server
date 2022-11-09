@@ -43,6 +43,11 @@ const port = process.env.PORT ?? 4000;
 
 app.get('/health-check', healthCheck);
 
+app.post('/set-username', (req, res) => {
+    console.log(req.body);
+    res.send('ok');
+});
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
