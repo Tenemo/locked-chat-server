@@ -14,6 +14,7 @@ export type Message = {
     author: string;
     timestamp: string;
     id: string;
+    replyTo?: string;
 };
 
 export type User = Record<string, string>;

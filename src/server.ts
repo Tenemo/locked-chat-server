@@ -2,10 +2,25 @@ import dotenv from 'dotenv';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import cors from 'cors';
 
 import { healthCheck } from 'routes/health-check';
 import crypto from 'crypto';
 import { Events, Message, User } from 'types/types';
+
+dotenv.config();
+
+const app = express();
+app.use(express.json(), cors());
+
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: '*',
+    },
+});
+
+const port = process.env.PORT ?? 4000;
 
 const messages: Message[] = [
     {
@@ -34,48 +49,51 @@ const users: User = {
     znlbFaz31OAxAX7RDDAD: 'Test3',
 };
 
-dotenv.config();
-
-const app = express();
-app.use(express.json());
-
-const port = process.env.PORT ?? 4000;
-
 app.get('/health-check', healthCheck);
 
-app.post('/set-username', (req, res) => {
-    console.log(req.body);
-    res.send('ok');
-});
+// app.post('/set-username', (req, res) => {
+//     if (
+//         Object.values(users).some(
+//             (existingUsername) => existingUsername === req.body.username,
+//         )
+//     ) {
+//         res.status(403);
+//         res.send('Username already exists.');
+//         console.log(req.body);
+//     } else {
+//         users[req.body.socketID] = req.body.username;
 
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-    cors: {
-        origin: '*',
-    },
-});
+//         res.status(200);
+//         res.send({
+//             messages: messages,
+//             usernames: Object.values(users),
+//         });
+//         console.log(req.body);
+//         socket.broadcast.emit(Events.UPDATE_USERS, Object.values(users));
+//     }
+// });
 
 io.on(`connection`, async (socket) => {
     console.log(`client connected: `, socket.id);
 
-    socket.on(Events.SET_USERNAME, (username: string) => {
-        if (
-            Object.values(users).some(
-                (existingUsername) => existingUsername === username,
-            )
-        ) {
-            socket.emit(Events.SET_USERNAME_FAILURE, username);
-        } else {
-            users[socket.id] = username;
+    // socket.on(Events.SET_USERNAME, (username: string) => {
+    //     if (
+    //         Object.values(users).some(
+    //             (existingUsername) => existingUsername === username,
+    //         )
+    //     ) {
+    //         socket.emit(Events.SET_USERNAME_FAILURE, username);
+    //     } else {
+    //         users[socket.id] = username;
 
-            socket.emit(Events.SET_USERNAME_SUCCESS, {
-                messages: messages,
-                usernames: Object.values(users),
-            });
+    //         socket.emit(Events.SET_USERNAME_SUCCESS, {
+    //             messages: messages,
+    //             usernames: Object.values(users),
+    //         });
 
-            socket.broadcast.emit(Events.UPDATE_USERS, Object.values(users));
-        }
-    });
+    //         socket.broadcast.emit(Events.UPDATE_USERS, Object.values(users));
+    //     }
+    // });
 
     socket.on(Events.NEW_MESSAGE, (content: string) => {
         const author = users[socket.id];
