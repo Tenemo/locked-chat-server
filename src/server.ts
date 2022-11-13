@@ -6,7 +6,7 @@ import cors from 'cors';
 
 import { healthCheck } from 'routes/health-check';
 import crypto from 'crypto';
-import { Events, Message, User } from 'types/types';
+import { Events, Message, User, CustomRequest, Body } from 'types/types';
 
 dotenv.config();
 
@@ -14,13 +14,17 @@ const app = express();
 app.use(express.json(), cors());
 
 const httpServer = createServer(app);
+const port = process.env.PORT ?? 4000;
+
+httpServer.listen(port, () => {
+    console.log(`Listening on port ${port}`);
+});
+
 const io = new Server(httpServer, {
     cors: {
         origin: '*',
     },
 });
-
-const port = process.env.PORT ?? 4000;
 
 const messages: Message[] = [
     {
@@ -51,30 +55,31 @@ const users: User = {
 
 app.get('/health-check', healthCheck);
 
-// app.post('/set-username', (req, res) => {
-//     if (
-//         Object.values(users).some(
-//             (existingUsername) => existingUsername === req.body.username,
-//         )
-//     ) {
-//         res.status(403);
-//         res.send('Username already exists.');
-//         console.log(req.body);
-//     } else {
-//         users[req.body.socketID] = req.body.username;
+app.post('/set-username', (req: CustomRequest<Body>, res) => {
+    if (
+        Object.values(users).some(
+            (existingUsername) => existingUsername === req.body.username,
+        )
+    ) {
+        res.status(403);
+        res.send('Username already exists.');
+        console.log('Cannot register:', req.body, '\n'); // for dev's purpose - delete later
+    } else {
+        users[req.body.socketID] = req.body.username;
 
-//         res.status(200);
-//         res.send({
-//             messages: messages,
-//             usernames: Object.values(users),
-//         });
-//         console.log(req.body);
-//         socket.broadcast.emit(Events.UPDATE_USERS, Object.values(users));
-//     }
-// });
+        res.status(200);
+        res.send({
+            messages: messages,
+            usernames: Object.values(users),
+        });
+        io.emit(Events.UPDATE_USERS, Object.values(users));
+        console.log('New user registered:', req.body); // for dev's purpose - delete later
+        console.log(`New user's list:`, Object.values(users), '\n'); // for dev's purpose - delete later
+    }
+});
 
 io.on(`connection`, async (socket) => {
-    console.log(`client connected: `, socket.id);
+    console.log(`Client connected: `, socket.id);
 
     // socket.on(Events.SET_USERNAME, (username: string) => {
     //     if (
@@ -95,38 +100,46 @@ io.on(`connection`, async (socket) => {
     //     }
     // });
 
-    socket.on(Events.NEW_MESSAGE, (content: string) => {
-        const author = users[socket.id];
+    socket.on(
+        Events.NEW_MESSAGE,
+        (message: string | { content: string; messageId: string }) => {
+            const author = users[socket.id];
 
-        if (!author) {
-            socket.emit(Events.NEW_MESSAGE_USERNAME_NOT_REGISTERED);
-            return;
-        }
+            if (!author) {
+                socket.emit(Events.NEW_MESSAGE_USERNAME_NOT_REGISTERED);
+                console.log(
+                    `Cannot send this message: ${socket.id} need username\n`,
+                ); // for dev's purpose - delete later
+                return;
+            }
 
-        const timestamp = new Date().toISOString();
-        const id = crypto.randomBytes(32).toString('hex');
+            const timestamp = new Date().toISOString();
+            const id = crypto.randomBytes(32).toString('hex');
 
-        const newMessage: Message = {
-            content,
-            author,
-            timestamp,
-            id,
-        };
+            const newMessage: Message = {
+                content:
+                    typeof message === 'string' ? message : message.content,
+                author,
+                timestamp,
+                id,
+                ...(typeof message === 'object' && {
+                    replyTo: message.messageId,
+                }),
+            };
 
-        messages.push(newMessage);
-        Object.keys(users).forEach((key) =>
-            io.to(key).emit(Events.NEW_MESSAGE_UPDATE, newMessage),
-        );
-    });
+            messages.push(newMessage);
+            Object.keys(users).forEach((key) =>
+                io.to(key).emit(Events.NEW_MESSAGE_UPDATE, newMessage),
+            );
+            console.log(`New message:`, newMessage, '\n'); // for dev's purpose - delete later
+        },
+    );
 
     socket.on(`disconnect`, (reason) => {
         console.log(reason);
-        console.log(users[socket.id], ' left the chat');
+        console.log(users[socket.id], 'left the chat');
         delete users[socket.id];
         socket.broadcast.emit(Events.USER_DISCONNECTED, Object.values(users));
+        console.log(`New user's list:`, Object.values(users), '\n'); // for dev's purpose - delete later
     });
-});
-
-httpServer.listen(port, () => {
-    console.log(`Listening on port ${port}`);
 });

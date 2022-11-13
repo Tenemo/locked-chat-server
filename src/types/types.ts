@@ -1,3 +1,5 @@
+import { Request } from 'express';
+
 export enum Events {
     NEW_MESSAGE = 'new-message',
     NEW_MESSAGE_UPDATE = 'new-message-update',
@@ -18,3 +20,8 @@ export type Message = {
 };
 
 export type User = Record<string, string>;
+
+export type Body = { username: string; socketID: string };
+export interface CustomRequest<Body> extends Request {
+    body: Body;
+}
