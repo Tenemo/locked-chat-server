@@ -81,59 +81,36 @@ app.post('/set-username', (req: CustomRequest<Body>, res) => {
 io.on(`connection`, async (socket) => {
     console.log(`Client connected: `, socket.id);
 
-    // socket.on(Events.SET_USERNAME, (username: string) => {
-    //     if (
-    //         Object.values(users).some(
-    //             (existingUsername) => existingUsername === username,
-    //         )
-    //     ) {
-    //         socket.emit(Events.SET_USERNAME_FAILURE, username);
-    //     } else {
-    //         users[socket.id] = username;
+    socket.on(Events.NEW_MESSAGE, (content: string, messageId: string) => {
+        const author = users[socket.id];
 
-    //         socket.emit(Events.SET_USERNAME_SUCCESS, {
-    //             messages: messages,
-    //             usernames: Object.values(users),
-    //         });
+        if (!author) {
+            socket.emit(Events.NEW_MESSAGE_USERNAME_NOT_REGISTERED);
+            console.log(
+                `Cannot send this message: ${socket.id} need username\n`,
+            ); // for dev's purpose - delete later
+            return;
+        }
 
-    //         socket.broadcast.emit(Events.UPDATE_USERS, Object.values(users));
-    //     }
-    // });
+        const timestamp = new Date().toISOString();
+        const id = crypto.randomBytes(32).toString('hex');
 
-    socket.on(
-        Events.NEW_MESSAGE,
-        (message: string | { content: string; messageId: string }) => {
-            const author = users[socket.id];
+        const newMessage: Message = {
+            content,
+            author,
+            timestamp,
+            id,
+            ...(messageId && {
+                replyTo: messageId,
+            }),
+        };
 
-            if (!author) {
-                socket.emit(Events.NEW_MESSAGE_USERNAME_NOT_REGISTERED);
-                console.log(
-                    `Cannot send this message: ${socket.id} need username\n`,
-                ); // for dev's purpose - delete later
-                return;
-            }
-
-            const timestamp = new Date().toISOString();
-            const id = crypto.randomBytes(32).toString('hex');
-
-            const newMessage: Message = {
-                content:
-                    typeof message === 'string' ? message : message.content,
-                author,
-                timestamp,
-                id,
-                ...(typeof message === 'object' && {
-                    replyTo: message.messageId,
-                }),
-            };
-
-            messages.push(newMessage);
-            Object.keys(users).forEach((key) =>
-                io.to(key).emit(Events.NEW_MESSAGE_UPDATE, newMessage),
-            );
-            console.log(`New message:`, newMessage, '\n'); // for dev's purpose - delete later
-        },
-    );
+        messages.push(newMessage);
+        Object.keys(users).forEach((key) =>
+            io.to(key).emit(Events.NEW_MESSAGE_UPDATE, newMessage),
+        );
+        console.log(`New message:`, newMessage, '\n'); // for dev's purpose - delete later
+    });
 
     socket.on(`disconnect`, (reason) => {
         console.log(reason);
