@@ -7,8 +7,9 @@ export enum Events {
     SET_USERNAME = 'set-username',
     SET_USERNAME_SUCCESS = 'set-username-success',
     SET_USERNAME_FAILURE = 'set-username-failure',
-    UPDATE_USERS = 'update-users',
+    UPDATE_USERNAMES = 'update-usernames',
     USER_DISCONNECTED = 'user-disconnected',
+    USER_RECONNECT = 'user-reconnect',
 }
 
 export type Message = {
@@ -19,7 +20,7 @@ export type Message = {
     replyTo?: string;
 };
 
-export type User = Record<string, string>;
+export type User = Record<string, { username: string; socketID: string }>;
 
 export type Body = { username: string; socketID: string };
 export interface CustomRequest<Body> extends Request {

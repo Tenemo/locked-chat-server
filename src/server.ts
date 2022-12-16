@@ -7,6 +7,30 @@ import cors from 'cors';
 import { healthCheck } from 'routes/health-check';
 import crypto from 'crypto';
 import { Events, Message, User, CustomRequest, Body } from 'types/types';
+import { generateToken, validateToken } from 'utils/jwt.utils';
+import { VerifyInterface, verifyToken } from 'routes/verify-token';
+
+// import fs from 'fs';
+// import path from 'path';
+// import jwt from 'jsonwebtoken';
+//testowe dane do wysłania
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// const dane: { imie: string } = {
+//     imie: 'wojtek',
+// };
+// const privateKey = {
+//     key: fs.readFileSync(path.join(__dirname, './../private.pem'), 'utf8'),
+//     passphrase: 'lockedchat',
+// };
+// const token = jwt.sign(
+//     dane,
+//     privateKey,
+//     { algorithm: 'RS256' },
+//     function (err, token) {
+//         console.log('error', err);
+//         console.log('token ', token);
+//     },
+// );
 
 dotenv.config();
 
@@ -47,63 +71,68 @@ const messages: Message[] = [
     },
 ];
 
-const users: User = {
-    _E9JSqynu35fJ4bIAAAB: 'Test1',
-    znlbFaz31OAxAX7RAAAD: 'Test2',
-    znlbFaz31OAxAX7RDDAD: 'Test3',
+export const users: User = {
+    _E9JSqynu35fJ4bIAAAB: { username: 'Test1', socketID: '123456' },
+    znlbFaz31OAxAX7RAAAD: { username: 'Test2', socketID: '123456' },
+    znlbFaz31OAxAX7RDDAD: { username: 'Test3', socketID: '123456' },
 };
 
 app.get('/health-check', healthCheck);
+app.post('/verify-token', verifyToken);
 
 app.post('/set-username', (req: CustomRequest<Body>, res) => {
     if (
         Object.values(users).some(
-            (existingUsername) => existingUsername === req.body.username,
+            (userId) => userId.username === req.body.username,
         )
     ) {
         res.status(403);
         res.send('Username already exists.');
         console.log('Cannot register:', req.body, '\n'); // for dev's purpose - delete later
     } else {
-        users[req.body.socketID] = req.body.username;
-
-        res.status(200);
-        res.send({
-            messages: messages,
-            usernames: Object.values(users),
+        const token = generateToken({
+            username: req.body.username,
+            socketID: req.body.socketID,
         });
-        io.emit(Events.UPDATE_USERS, Object.values(users));
-        console.log('New user registered:', req.body); // for dev's purpose - delete later
-        console.log(`New user's list:`, Object.values(users), '\n'); // for dev's purpose - delete later
+        const userID = crypto.randomBytes(32).toString('hex');
+        users[userID] = {
+            username: req.body.username,
+            socketID: req.body.socketID,
+        };
+
+        const usernames: string[] = [];
+        for (const key in users) {
+            const user = users[key];
+            usernames.push(user.username);
+        }
+        res.send({
+            messages,
+            usernames,
+            token,
+            userID,
+        });
+        io.emit(Events.UPDATE_USERNAMES, Object.values(users));
+        console.log('New user registered: userId:\n', userID, users[userID]); // for dev's purpose - delete later
+        console.log(`New user's list:`, usernames, '\n'); // for dev's purpose - delete later
     }
 });
 
-io.on(`connection`, async (socket) => {
+io.on(`connection`, (socket) => {
     console.log(`Client connected: `, socket.id);
+    //popraw :string
 
-    // socket.on(Events.SET_USERNAME, (username: string) => {
-    //     if (
-    //         Object.values(users).some(
-    //             (existingUsername) => existingUsername === username,
-    //         )
-    //     ) {
-    //         socket.emit(Events.SET_USERNAME_FAILURE, username);
-    //     } else {
-    //         users[socket.id] = username;
-
-    //         socket.emit(Events.SET_USERNAME_SUCCESS, {
-    //             messages: messages,
-    //             usernames: Object.values(users),
-    //         });
-
-    //         socket.broadcast.emit(Events.UPDATE_USERS, Object.values(users));
-    //     }
-    // });
+    socket.on(Events.USER_RECONNECT, async ({ token }: { token: string }) => {
+        console.log('reconnect udany ', token);
+        const sprawdzamToken = validateToken(token) as VerifyInterface;
+        socket.emit('testuje', sprawdzamToken);
+        // console.log('sprawdzenie ', sprawdzamToken);
+        // console.log('typeof ', typeof sprawdzamToken);
+    });
 
     socket.on(
         Events.NEW_MESSAGE,
         (message: string | { content: string; messageId: string }) => {
-            const author = users[socket.id];
+            const author = users[socket.id]; //todo
 
             if (!author) {
                 socket.emit(Events.NEW_MESSAGE_USERNAME_NOT_REGISTERED);
